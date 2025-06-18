@@ -33,7 +33,7 @@ namespace BookLibraryApi
 
             app.UseHttpsRedirection();
 
-            app.MapControllers();
+                
 
 
             app.Run();
