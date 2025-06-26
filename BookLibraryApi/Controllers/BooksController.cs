@@ -26,7 +26,7 @@ namespace BookLibraryApi.Controllers
             [FromQuery] int page = 1 , 
             [FromQuery] int pageSize = 10)
         {
-            //throw new Exception("Coś poszło bardzo źle");
+            throw new Exception("Coś poszło bardzo źle");
 
 
             if (!ModelState.IsValid)
