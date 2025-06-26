@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using BookLibraryApi.Data;
 using Microsoft.AspNetCore.Hosting.Server;
+using BookLibraryApi.Middlewear;
 
 namespace BookLibraryApi
 {
@@ -14,6 +15,9 @@ namespace BookLibraryApi
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi  
             builder.Services.AddOpenApi();
             builder.Services.AddControllers();
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen();
+
             // Fix for CS1009: Unrecognized escape sequence  
 
 
@@ -29,9 +33,16 @@ namespace BookLibraryApi
             if (app.Environment.IsDevelopment())
             {
                 app.MapOpenApi();
+                app.UseSwagger();
+                app.UseSwaggerUI();
             }
 
+            app.UseMiddleware<ExceptionMiddlewear>();
+            app.MapControllers();
             app.UseHttpsRedirection();
+            
+
+            
 
                 
 

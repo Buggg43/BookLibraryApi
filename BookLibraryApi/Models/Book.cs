@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Swashbuckle.AspNetCore.Annotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace BookLibraryApi.Models
 {
@@ -7,6 +8,7 @@ namespace BookLibraryApi.Models
         public int Id { get; set; }
         [Required]
         [MaxLength(100)]
+        [SwaggerSchema(Description = "Tytuł książki")]
         public string Title { get; set; }
         [MaxLength(500)]
         public string Description { get; set; }

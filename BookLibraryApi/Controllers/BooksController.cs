@@ -1,5 +1,6 @@
 ﻿using BookLibraryApi.Data;
 using BookLibraryApi.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;
 using static System.Reflection.Metadata.BlobBuilder;
@@ -17,17 +18,65 @@ namespace BookLibraryApi.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetAll()
+        public async Task<IActionResult> GetAll(
+            [FromQuery] string? author, 
+            [FromQuery] bool? isRead, 
+            [FromQuery] bool? isFavorite, 
+            [FromQuery] DateTime? year, 
+            [FromQuery] int page = 1 , 
+            [FromQuery] int pageSize = 10)
         {
-            var books = _context.Books;
+            //throw new Exception("Coś poszło bardzo źle");
 
-            return Ok(books);
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            var query = _context.Books.AsQueryable();
+            
+
+            if (!string.IsNullOrEmpty(author))
+            {
+                query = query.Where(a => a.Author == author);
+            }
+            if(year.HasValue)
+            {
+                query = query.Where(b => b.Year == year);
+            }
+            if (isRead.HasValue)
+            {
+                query = query.Where(b => b.isRead == isRead.Value);
+            }
+            if (isFavorite.HasValue)
+            {
+                query = query.Where(b => b.isFavorite == isFavorite.Value);
+            }
+
+            var totalItems = await query.CountAsync();
+
+            var books = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+
+            var totalPages = (int)Math.Ceiling((double)totalItems/pageSize);
+
+            return Ok(new
+            {
+                page,
+                pageSize,
+                totalItems,
+                totalPages,
+                data = books
+            });
         }
         [HttpGet("{Id}")]
-        public IActionResult GetById(int id)
+        public async Task<IActionResult> GetById(int id)
         {
 
-            var chosen = _context.Books.FirstOrDefault(b => b.Id == id);
+            var chosen = await _context.Books.FirstOrDefaultAsync(b => b.Id == id);
             if (chosen != null)
             {
                 return Ok(chosen);
@@ -36,26 +85,26 @@ namespace BookLibraryApi.Controllers
                 return NotFound();
         }
         [HttpPost]
-        public IActionResult AddBook([FromBody] Book book)
+        public async Task<IActionResult> AddBook([FromBody] Book book)
         {
             if(!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
-            _context.Books.Add(book);
-            _context.SaveChanges();
+            await _context.Books.AddAsync(book);
+            await _context.SaveChangesAsync();
 
 
             return CreatedAtAction(nameof(GetById), new { id = book.Id }, book);
         }
         [HttpPut("{id}")]
-        public IActionResult Update([FromBody]Book book, int id)
+        public async Task<IActionResult> Update([FromBody]Book book, int id)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
-            var found = _context.Books.FirstOrDefault(b => b.Id == id);
+            var found = await _context.Books.FirstOrDefaultAsync(b => b.Id == id);
             if (found == null)
                 return NotFound(id);
 
@@ -66,18 +115,20 @@ namespace BookLibraryApi.Controllers
             found.Description = book.Description;
             found.isRead = book.isRead;
             found.isFavorite = book.isFavorite;
-            _context.SaveChanges();
+
+            await _context.SaveChangesAsync();
+
             return Ok(found);
         }
         [HttpDelete("{id}")]
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
             var found = _context.Books.FirstOrDefault(b => b.Id == id);
             if (found == null)
                 return NotFound(id);
             
             _context.Books.Remove(found);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
 
             return Ok($"Deleted {id}");
         }
