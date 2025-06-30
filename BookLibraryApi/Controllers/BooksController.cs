@@ -4,17 +4,21 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;
 using static System.Reflection.Metadata.BlobBuilder;
+using AutoMapper;
 
 namespace BookLibraryApi.Controllers
 {
+    
     [ApiController]
     [Route("api/[controller]")]
     public class BooksController : ControllerBase
     {
+        private readonly IMapper _mapper;
         private readonly LibraryDbContext _context;
-        public BooksController(LibraryDbContext context)
+        public BooksController(LibraryDbContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
         [HttpGet]
@@ -26,9 +30,6 @@ namespace BookLibraryApi.Controllers
             [FromQuery] int page = 1 , 
             [FromQuery] int pageSize = 10)
         {
-            throw new Exception("Coś poszło bardzo źle");
-
-
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
@@ -60,6 +61,7 @@ namespace BookLibraryApi.Controllers
                 .Take(pageSize)
                 .ToListAsync();
 
+            var booksDto = _mapper.Map<List<BookReadDto>>(books);
 
             var totalPages = (int)Math.Ceiling((double)totalItems/pageSize);
 
@@ -69,7 +71,7 @@ namespace BookLibraryApi.Controllers
                 pageSize,
                 totalItems,
                 totalPages,
-                data = books
+                data = booksDto
             });
         }
         [HttpGet("{Id}")]
@@ -79,18 +81,33 @@ namespace BookLibraryApi.Controllers
             var chosen = await _context.Books.FirstOrDefaultAsync(b => b.Id == id);
             if (chosen != null)
             {
-                return Ok(chosen);
+                var dto = _mapper.Map<BookReadDto>(chosen);
+                return Ok(dto);
             }
             else
                 return NotFound();
         }
         [HttpPost]
-        public async Task<IActionResult> AddBook([FromBody] Book book)
+        public async Task<IActionResult> AddBook([FromBody] BookCreateDto bookDto)
         {
             if(!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
+
+            var book = _mapper.Map<Book>(bookDto);
+            book.isRead = false;
+            book.isFavorite = false;
+
+            /*var book = new Book
+            {
+                Title = bookDto.Title,
+                Author = bookDto.Author,
+                Year = bookDto.Year,
+                Description = bookDto.Description,
+                isRead = false,
+                isFavorite = false
+            };*/
             await _context.Books.AddAsync(book);
             await _context.SaveChangesAsync();
 
@@ -98,7 +115,7 @@ namespace BookLibraryApi.Controllers
             return CreatedAtAction(nameof(GetById), new { id = book.Id }, book);
         }
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update([FromBody]Book book, int id)
+        public async Task<IActionResult> Update([FromBody]BookUpdateDto book, int id)
         {
             if (!ModelState.IsValid)
             {
@@ -108,17 +125,19 @@ namespace BookLibraryApi.Controllers
             if (found == null)
                 return NotFound(id);
 
-
+            _mapper.Map(book, found);
+            /* ręczne mapowanie
             found.Title = book.Title;
             found.Author = book.Author;
             found.Year = book.Year;
             found.Description = book.Description;
             found.isRead = book.isRead;
             found.isFavorite = book.isFavorite;
+            */
 
             await _context.SaveChangesAsync();
 
-            return Ok(found);
+            return Ok(book);
         }
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)

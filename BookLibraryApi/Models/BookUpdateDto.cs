@@ -1,21 +1,19 @@
-﻿using Swashbuckle.AspNetCore.Annotations;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace BookLibraryApi.Models
 {
-    public class Book
+    public class BookUpdateDto
     {
-        public int Id { get; set; }
         [Required]
         [MaxLength(100)]
-        [SwaggerSchema(Description = "Tytuł książki")]
         public string Title { get; set; }
-        [MaxLength(500)]
-        public string? Description { get; set; }
         [Required]
         [MaxLength(100)]
         public string Author { get; set; }
+        [Required]
         public DateTime Year { get; set; }
+        [MaxLength(500)]
+        public string? Description { get; set; }
         public bool isRead { get; set; }
         public bool isFavorite { get; set; }
     }

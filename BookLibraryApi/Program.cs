@@ -17,6 +17,7 @@ namespace BookLibraryApi
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+            builder.Services.AddAutoMapper(typeof(Program));
 
             // Fix for CS1009: Unrecognized escape sequence  
 
