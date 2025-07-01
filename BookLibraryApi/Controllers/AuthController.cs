@@ -11,6 +11,10 @@ namespace BookLibraryApi.Controllers
     [ApiController]
     public class AuthController : Controller
     {
+        public async Task Login()
+        {
+
+        }
         public async Task HashPassword(User user, string password)
         {
             user.PasswordHash = password;
@@ -45,6 +49,28 @@ namespace BookLibraryApi.Controllers
             await _context.SaveChangesAsync();
 
             return Created();
+        }
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginUserDto userDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest();
+            }
+            var existUsername = await _context.Users.AnyAsync(b => b.Username == userDto.Username);
+            if(!existUsername)
+            {
+                return Unauthorized("Nieprawidłowe dane logowania");
+            }
+            var user = await _context.Users.FirstOrDefaultAsync(b => b.Username == userDto.Username);
+            var result = _hasher.VerifyHashedPassword(user, user.PasswordHash, userDto.Password);
+
+            if(result != PasswordVerificationResult.Success)
+            {
+                return Unauthorized("Nieprawidłowe dane logowania");
+            }
+
+            return Ok();
         }
 
     }
