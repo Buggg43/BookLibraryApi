@@ -1,14 +1,18 @@
 ﻿using AutoMapper;
 using BookLibraryApi.Data;
 using BookLibraryApi.Models;
+using BookLibraryApi.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace BookLibraryApi.Controllers
 {
 
     [ApiController]
+    [Route("api/[controller]")]
     public class AuthController : Controller
     {
         public async Task Login()
@@ -22,11 +26,13 @@ namespace BookLibraryApi.Controllers
         private readonly PasswordHasher<User> _hasher;
         private readonly IMapper _mapper;
         private readonly LibraryDbContext _context;
-        public AuthController(PasswordHasher<User> hasher, LibraryDbContext context, IMapper mapper)
+        private readonly JwtService _token;
+        public AuthController(PasswordHasher<User> hasher, LibraryDbContext context, IMapper mapper, JwtService token)
         {
             _context = context;
             _hasher = hasher;
             _mapper = mapper;
+            _token = token;
         }
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody]RegisterUserDto userDto)
@@ -69,9 +75,31 @@ namespace BookLibraryApi.Controllers
             {
                 return Unauthorized("Nieprawidłowe dane logowania");
             }
+            var token = _token.GenerateToken(user);
 
-            return Ok();
+            return Ok(new {token});
         }
+        [Authorize]
+        [HttpGet("secure-data")]
+        public IActionResult GetSecureData()
+        {
+            return Ok("Tylko zalogowany użytkowni to widzi!");
+        }
+        [Authorize]
+        [HttpGet("me")]
+        public IActionResult WhoIsLogged()
+        {
+            if (!ModelState.IsValid) {
+                return BadRequest();
+            }
+            if (!HttpContext.User.Identity.IsAuthenticated)
+                return Unauthorized();
 
+
+            var id = int.Parse(HttpContext.User.FindFirst(ClaimTypes.NameIdentifier).Value);
+            var username = HttpContext.User.FindFirst(ClaimTypes.Name)?.Value;
+
+            return Ok(new { id, username });
+        }
     }
 }
