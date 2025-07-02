@@ -1,8 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace BookLibraryApi.Models
+namespace BookLibraryApi.Models.Dtos
 {
-    public class LoginUserDto
+    public class RegisterUserDto
     {
         [Required]
         [MinLength(3)]

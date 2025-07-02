@@ -1,10 +1,12 @@
 ﻿using Swashbuckle.AspNetCore.Annotations;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace BookLibraryApi.Models
 {
     public class Book
     {
+        
         public int Id { get; set; }
         [Required]
         [MaxLength(100)]
@@ -18,5 +20,10 @@ namespace BookLibraryApi.Models
         public DateTime Year { get; set; }
         public bool isRead { get; set; }
         public bool isFavorite { get; set; }
+
+        public int UserId { get; set; }
+        [ForeignKey("UserId")]
+        public User User { get; set; }
+
     }
 }

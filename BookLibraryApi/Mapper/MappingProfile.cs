@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using BookLibraryApi.Models;
+using BookLibraryApi.Models.Dtos;
 
 namespace BookLibraryApi.Mapper
 {

@@ -5,10 +5,13 @@ using Microsoft.AspNetCore.Mvc;
 using System.Linq;
 using static System.Reflection.Metadata.BlobBuilder;
 using AutoMapper;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using BookLibraryApi.Models.Dtos;
 
 namespace BookLibraryApi.Controllers
 {
-    
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class BooksController : ControllerBase
@@ -20,7 +23,13 @@ namespace BookLibraryApi.Controllers
             _context = context;
             _mapper = mapper;
         }
-
+        [Authorize(Roles="Admin")]
+        [HttpGet("admin/all-books")]
+        public async Task<IActionResult> GetAllBookFromAllUsers()
+        {
+            var books = await _context.Books.ToListAsync();
+            return Ok(_mapper.Map<List<BookReadDto>>(books));
+        }
         [HttpGet]
         public async Task<IActionResult> GetAll(
             [FromQuery] string? author, 
@@ -34,7 +43,8 @@ namespace BookLibraryApi.Controllers
             {
                 return BadRequest(ModelState);
             }
-            var query = _context.Books.AsQueryable();
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+            var query = _context.Books.Where(b => b.UserId == userId);
             
 
             if (!string.IsNullOrEmpty(author))
@@ -81,6 +91,10 @@ namespace BookLibraryApi.Controllers
             var chosen = await _context.Books.FirstOrDefaultAsync(b => b.Id == id);
             if (chosen != null)
             {
+                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                if (chosen.Id != userId)
+                    return Forbid();
+                
                 var dto = _mapper.Map<BookReadDto>(chosen);
                 return Ok(dto);
             }
@@ -95,7 +109,11 @@ namespace BookLibraryApi.Controllers
                 return BadRequest(ModelState);
             }
 
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+            
+
             var book = _mapper.Map<Book>(bookDto);
+            book.UserId = userId;
             book.isRead = false;
             book.isFavorite = false;
 
@@ -125,8 +143,13 @@ namespace BookLibraryApi.Controllers
             if (found == null)
                 return NotFound(id);
 
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+            if (found.UserId != userId)
+                return Forbid();
+
             _mapper.Map(book, found);
-            /* ręczne mapowanie
+
+            /* ręczne mapowanie // manual maping
             found.Title = book.Title;
             found.Author = book.Author;
             found.Year = book.Year;
@@ -145,6 +168,10 @@ namespace BookLibraryApi.Controllers
             var found = _context.Books.FirstOrDefault(b => b.Id == id);
             if (found == null)
                 return NotFound(id);
+
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+            if (found.UserId != userId)
+                return Forbid();
             
             _context.Books.Remove(found);
             await _context.SaveChangesAsync();

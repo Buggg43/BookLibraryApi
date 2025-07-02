@@ -23,7 +23,8 @@ namespace BookLibraryApi.Services
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Name, user.Username)
+                new Claim(ClaimTypes.Name, user.Username),
+                new Claim(ClaimTypes.Role, user.Role)
             };
 
             var epiresMinutes = int.Parse(_configure["Jwt:ExpireMinutes"]);

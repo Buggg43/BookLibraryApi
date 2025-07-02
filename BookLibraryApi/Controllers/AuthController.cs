@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using BookLibraryApi.Data;
 using BookLibraryApi.Models;
+using BookLibraryApi.Models.Dtos;
 using BookLibraryApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -15,10 +16,6 @@ namespace BookLibraryApi.Controllers
     [Route("api/[controller]")]
     public class AuthController : Controller
     {
-        public async Task Login()
-        {
-
-        }
         public async Task HashPassword(User user, string password)
         {
             user.PasswordHash = password;
@@ -35,14 +32,14 @@ namespace BookLibraryApi.Controllers
             _token = token;
         }
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody]RegisterUserDto userDto)
+        public async Task<IActionResult> Register([FromBody] RegisterUserDto userDto)
         {
-            if(!ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
                 return BadRequest();
             }
-            var user = new User { Username = userDto.Username };
-            user.PasswordHash =_hasher.HashPassword(user, userDto.Password);
+            var user = new User { Username = userDto.Username, Role = "User" };
+            user.PasswordHash = _hasher.HashPassword(user, userDto.Password);
 
 
             var exist = await _context.Users.AnyAsync(b => b.Username == user.Username);
@@ -64,20 +61,20 @@ namespace BookLibraryApi.Controllers
                 return BadRequest();
             }
             var existUsername = await _context.Users.AnyAsync(b => b.Username == userDto.Username);
-            if(!existUsername)
+            if (!existUsername)
             {
                 return Unauthorized("Nieprawidłowe dane logowania");
             }
             var user = await _context.Users.FirstOrDefaultAsync(b => b.Username == userDto.Username);
             var result = _hasher.VerifyHashedPassword(user, user.PasswordHash, userDto.Password);
 
-            if(result != PasswordVerificationResult.Success)
+            if (result != PasswordVerificationResult.Success)
             {
                 return Unauthorized("Nieprawidłowe dane logowania");
             }
             var token = _token.GenerateToken(user);
 
-            return Ok(new {token});
+            return Ok(new { token });
         }
         [Authorize]
         [HttpGet("secure-data")]
@@ -99,7 +96,58 @@ namespace BookLibraryApi.Controllers
             var id = int.Parse(HttpContext.User.FindFirst(ClaimTypes.NameIdentifier).Value);
             var username = HttpContext.User.FindFirst(ClaimTypes.Name)?.Value;
 
-            return Ok(new { id, username });
+            var me = new UserReadDto { Id = id, Username = username };
+
+            return Ok(me);
+        }
+        [Authorize(Roles="Admin")]
+        [HttpGet("admin/users")]
+        public async Task<IActionResult> GetAllusers()
+        {
+            if (!ModelState.IsValid)
+                return BadRequest();
+            if (!HttpContext.User.Identity.IsAuthenticated)
+                return Forbid();
+            var users = _context.Users.ToListAsync();
+            return Ok(_mapper.Map<List<UserReadDto>>(users));
+        }
+        [Authorize(Roles="Admin")]
+        [HttpDelete("admin/users/{id}")]
+        public async Task<IActionResult> RemoveUser(int id)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest();
+            var user = _context.Users.FirstOrDefault(b => b.Id == id);
+            if (user == null)
+                return BadRequest();
+            if (user.Role == "Admin")
+                return Forbid("User role is to high");
+            var userBooks = await _context.Books.Where(b => b.UserId == id).ToListAsync();
+
+            _context.Books.RemoveRange(userBooks);
+            _context.Users.Remove(user);
+
+            _context.SaveChanges();
+
+            return Ok();
+        }
+        [Authorize(Roles="Admin")]
+        [HttpPut("admin/users/{id}/role")]
+        public async Task<IActionResult> UpdateUser(int id, [FromBody] UpdateUserRoleDto newRole)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest();
+
+            var user = await _context.Users.FirstOrDefaultAsync(a => a.Id == id);
+
+            if (user == null)
+                return NotFound();
+
+            user.Role = newRole.Role;
+
+            _context.SaveChanges();
+
+            return Ok($"User{user.Username} has now role set to: {user.Role}");
         }
     }
 }
