@@ -3,6 +3,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Security.Cryptography;
+using BookLibraryApi.Models.Dtos;
 
 namespace BookLibraryApi.Services
 {
@@ -38,6 +40,28 @@ namespace BookLibraryApi.Services
 
             return jwt;
 
+        }
+        public RefreshToken GenerateRefreshToken(User user)
+        {
+            var random = RandomNumberGenerator.GetBytes(32);
+            var token = Convert.ToBase64String(random);
+
+            //var expiresMinutes = int.Parse(_configure["ExpireMinutes"]);//to add ExpireDays in appsetting
+
+            var expire = DateTime.UtcNow.AddDays(7); 
+
+            var refreshUser = new RefreshToken();
+            
+            
+            refreshUser.Id = user.Id;
+            refreshUser.UserId = user.Id;
+            refreshUser.isRevoked = false;// potem do zmiany 
+            refreshUser.Expires = expire;
+            refreshUser.Token = token;
+            refreshUser.User = user;
+            
+
+            return refreshUser;
         }
     }
 }

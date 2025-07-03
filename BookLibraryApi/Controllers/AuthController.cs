@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection.Emit;
 using System.Security.Claims;
 
 namespace BookLibraryApi.Controllers
@@ -148,6 +149,30 @@ namespace BookLibraryApi.Controllers
             _context.SaveChanges();
 
             return Ok($"User{user.Username} has now role set to: {user.Role}");
+        }
+        [HttpPut("refresh")]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequestDto refreshTokenDto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest();
+
+            var existingRefreshToken = await _context.RefreshTokens.FirstOrDefaultAsync(a => a.Token == refreshTokenDto.token);
+            if (existingRefreshToken == null)
+                return NotFound();
+            if (existingRefreshToken.isRevoked == true || existingRefreshToken.Expires < DateTime.UtcNow)
+                return Forbid();
+
+            existingRefreshToken.isRevoked = true;
+
+            var refreshUser = new RefreshToken();
+            refreshUser = _token.GenerateRefreshToken(existingRefreshToken.User);
+            var newAccess = _token.GenerateToken(existingRefreshToken.User);
+
+
+            await _context.RefreshTokens.AddAsync(refreshUser);
+            await _context.SaveChangesAsync();
+
+            return Ok(new TokenPairDto { AccessToken = newAccess, RefreshToken = refreshUser.Token });
         }
     }
 }
