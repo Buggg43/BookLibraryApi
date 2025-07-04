@@ -17,7 +17,7 @@ namespace BookLibraryApi
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
-            
+
 
             // Add services to the container.  
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi  
@@ -36,13 +36,15 @@ namespace BookLibraryApi
                     ValidateAudience = false,
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
-                    
+
                     ValidIssuer = builder.Configuration["Jwt:Issuer"],
-                    
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? string.Empty))
 
                 };
             });
+            builder.Services.AddHostedService<RefreshTokenCleanUpService>();
+
 
 
             // Fix for CS1009: Unrecognized escape sequence  
@@ -64,18 +66,18 @@ namespace BookLibraryApi
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
-            
+
             app.UseAuthentication();
             app.UseAuthorization();
-            
+
             app.UseMiddleware<ExceptionMiddlewear>();
             app.MapControllers();
             app.UseHttpsRedirection();
-            
 
-            
 
-                
+
+
+
 
 
             app.Run();

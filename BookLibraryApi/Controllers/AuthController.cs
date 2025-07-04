@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 using System.Reflection.Emit;
 using System.Security.Claims;
 
@@ -73,9 +74,62 @@ namespace BookLibraryApi.Controllers
             {
                 return Unauthorized("Nieprawidłowe dane logowania");
             }
-            var token = _token.GenerateToken(user);
 
-            return Ok(new { token });
+            //var isRevoked = await _context.RefreshTokens.FirstOrDefaultAsync(b => b.UserId == user.Id); // test don't mind / remove later
+
+            var token = _token.GenerateToken(user);
+            var refresh = _token.GenerateRefreshToken(user);
+
+            var pair = new TokenPairDto
+            {
+                AccessToken = token,
+                RefreshToken = refresh.Token,
+            };
+            await _context.RefreshTokens.AddAsync(refresh);
+            await _context.SaveChangesAsync();
+
+            return Ok(pair);
+        }
+        [Authorize]
+        [HttpPost("Logout")]
+        public async Task<IActionResult> Logout([FromBody] LogOutRequestDto logout)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest();
+
+            var tokenFromDb = await _context.RefreshTokens.FirstOrDefaultAsync(b => b.Token == logout.refreshToken);
+            if (tokenFromDb == null)
+                return NotFound("Token nie istnieje");
+
+            var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+            if (tokenFromDb.UserId != currentUserId)
+                return Forbid();
+
+            if (tokenFromDb.isRevoked == true || tokenFromDb.Expires < DateTime.UtcNow)
+                return NoContent();
+
+            tokenFromDb.isRevoked = true;
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+        [Authorize]
+        [HttpPost("logout/all")]
+        public async Task<IActionResult> LogoutAll()
+        {
+            var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+
+            var tokensFromDb = await _context.RefreshTokens
+                .Where(t => t.UserId == currentUserId && !t.isRevoked && t.Expires > DateTime.UtcNow)
+                .ToListAsync();
+
+            foreach (var token in tokensFromDb)
+            {
+                token.isRevoked = true;
+            }
+
+            await _context.SaveChangesAsync();
+            return NoContent();
         }
         [Authorize]
         [HttpGet("secure-data")]
@@ -164,15 +218,21 @@ namespace BookLibraryApi.Controllers
 
             existingRefreshToken.isRevoked = true;
 
-            var refreshUser = new RefreshToken();
-            refreshUser = _token.GenerateRefreshToken(existingRefreshToken.User);
+            var refresh = new RefreshToken();
+            refresh = _token.GenerateRefreshToken(existingRefreshToken.User);
             var newAccess = _token.GenerateToken(existingRefreshToken.User);
 
 
-            await _context.RefreshTokens.AddAsync(refreshUser);
+            await _context.RefreshTokens.AddAsync(refresh);
             await _context.SaveChangesAsync();
 
-            return Ok(new TokenPairDto { AccessToken = newAccess, RefreshToken = refreshUser.Token });
+            var pair = new TokenPairDto 
+            { 
+                AccessToken = newAccess, 
+                RefreshToken = refresh.Token 
+            };
+
+            return Ok(pair);
         }
     }
 }
