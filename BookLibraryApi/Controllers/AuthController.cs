@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using BookLibraryApi.Data;
+using BookLibraryApi.Features.Users.Queries;
 using BookLibraryApi.Models;
 using BookLibraryApi.Models.Dtos;
 using BookLibraryApi.Services;
@@ -139,21 +140,55 @@ namespace BookLibraryApi.Controllers
         }
         [Authorize]
         [HttpGet("me")]
-        public IActionResult WhoIsLogged()
+        public IActionResult GetCurrentUser()
         {
-            if (!ModelState.IsValid) {
+            var query = new GetCurrentUserQuery();
+            var dto = query.Execute(User);
+            return Ok(dto);
+        }
+        [Authorize]
+        [HttpPut("me/password")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto changePasswordDto)
+        {
+            if (changePasswordDto == null || !ModelState.IsValid)
                 return BadRequest();
-            }
-            if (!HttpContext.User.Identity.IsAuthenticated)
-                return Unauthorized();
+
+            var username = HttpContext.User.FindFirst(ClaimTypes.Name).Value;
+            var user = await _context.Users.FirstOrDefaultAsync(b => b.Username == username);
+
+            if (user == null)
+                return NotFound("Użytkownik nie istnieje");
+
+            if (_hasher.VerifyHashedPassword(user, user.PasswordHash, changePasswordDto.OldPassword) == PasswordVerificationResult.Failed)
+                return Unauthorized("Nieprawidłowe hasło");
+
+            user.PasswordHash = _hasher.HashPassword(user,changePasswordDto.NewPassword);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+        [Authorize]
+        [HttpPut("me")]
+        public async Task<IActionResult> UpdateCurrentUser([FromBody] UpdateUserDto updateUserDto)
+        {
+            if(!ModelState.IsValid)
+                return BadRequest();
 
 
-            var id = int.Parse(HttpContext.User.FindFirst(ClaimTypes.NameIdentifier).Value);
-            var username = HttpContext.User.FindFirst(ClaimTypes.Name)?.Value;
+            var userId = int.Parse(HttpContext.User.FindFirst(ClaimTypes.NameIdentifier).Value);
+            var user = await _context.Users.FirstOrDefaultAsync(b => b.Id == userId);
+            if (user == null)
+                return NotFound();
+            var usernameTaken = await _context.Users
+            .AnyAsync(u => u.Username == updateUserDto.UserName && u.Id != userId);
+            if (usernameTaken)
+                return Conflict("Ta nazwa użytkownika już jest zajęta");
 
-            var me = new UserReadDto { Id = id, Username = username };
+            _mapper.Map(updateUserDto,user);
 
-            return Ok(me);
+            await _context.SaveChangesAsync();
+
+            return Ok();
         }
         [Authorize(Roles="Admin")]
         [HttpGet("admin/users")]
