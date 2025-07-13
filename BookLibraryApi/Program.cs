@@ -9,6 +9,9 @@ using BookLibraryApi.Services;
 using System.Text;
 using Microsoft.AspNetCore.Identity;
 using BookLibraryApi.Models;
+using FluentValidation;
+using MediatR.Extensions.FluentValidation.AspNetCore;
+using FluentValidation.AspNetCore;
 
 namespace BookLibraryApi
 {
@@ -17,7 +20,6 @@ namespace BookLibraryApi
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
-
 
             // Add services to the container.  
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi  
@@ -44,11 +46,12 @@ namespace BookLibraryApi
                 };
             });
             builder.Services.AddHostedService<RefreshTokenCleanUpService>();
-
-
+            builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
+            builder.Services.AddFluentValidationAutoValidation();
+            builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+            //builder.Services.AddFluentValidationClientsideAdapters(); // dla frontu MVC/Blazor
 
             // Fix for CS1009: Unrecognized escape sequence  
-
 
             builder.Services.AddDbContext<LibraryDbContext>(options =>
             {
@@ -57,7 +60,6 @@ namespace BookLibraryApi
             });
 
             var app = builder.Build();
-
 
             // Configure the HTTP request pipeline.  
             if (app.Environment.IsDevelopment())
@@ -73,12 +75,6 @@ namespace BookLibraryApi
             app.UseMiddleware<ExceptionMiddlewear>();
             app.MapControllers();
             app.UseHttpsRedirection();
-
-
-
-
-
-
 
             app.Run();
         }

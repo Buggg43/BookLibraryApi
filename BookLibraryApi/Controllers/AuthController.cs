@@ -1,9 +1,11 @@
 ﻿using AutoMapper;
 using BookLibraryApi.Data;
+using BookLibraryApi.Features.Users.Commands;
 using BookLibraryApi.Features.Users.Queries;
 using BookLibraryApi.Models;
 using BookLibraryApi.Models.Dtos;
 using BookLibraryApi.Services;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -27,12 +29,14 @@ namespace BookLibraryApi.Controllers
         private readonly IMapper _mapper;
         private readonly LibraryDbContext _context;
         private readonly JwtService _token;
-        public AuthController(PasswordHasher<User> hasher, LibraryDbContext context, IMapper mapper, JwtService token)
+        private readonly IMediator _mediator;
+        public AuthController(PasswordHasher<User> hasher, LibraryDbContext context, IMapper mapper, JwtService token, IMediator mediator)
         {
             _context = context;
             _hasher = hasher;
             _mapper = mapper;
             _token = token;
+            _mediator = mediator;
         }
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterUserDto userDto)
@@ -150,45 +154,15 @@ namespace BookLibraryApi.Controllers
         [HttpPut("me/password")]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto changePasswordDto)
         {
-            if (changePasswordDto == null || !ModelState.IsValid)
-                return BadRequest();
-
-            var username = HttpContext.User.FindFirst(ClaimTypes.Name).Value;
-            var user = await _context.Users.FirstOrDefaultAsync(b => b.Username == username);
-
-            if (user == null)
-                return NotFound("Użytkownik nie istnieje");
-
-            if (_hasher.VerifyHashedPassword(user, user.PasswordHash, changePasswordDto.OldPassword) == PasswordVerificationResult.Failed)
-                return Unauthorized("Nieprawidłowe hasło");
-
-            user.PasswordHash = _hasher.HashPassword(user,changePasswordDto.NewPassword);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            var _changePassword = new ChangePasswordCommand(_context,_hasher);
+            return await _changePassword.ExecuteAsync(User, changePasswordDto);
         }
         [Authorize]
         [HttpPut("me")]
-        public async Task<IActionResult> UpdateCurrentUser([FromBody] UpdateUserDto updateUserDto)
+        public async Task<IResult> UpdateCurrentUser([FromBody] UpdateUserDto updateUserDto)
         {
-            if(!ModelState.IsValid)
-                return BadRequest();
-
-
-            var userId = int.Parse(HttpContext.User.FindFirst(ClaimTypes.NameIdentifier).Value);
-            var user = await _context.Users.FirstOrDefaultAsync(b => b.Id == userId);
-            if (user == null)
-                return NotFound();
-            var usernameTaken = await _context.Users
-            .AnyAsync(u => u.Username == updateUserDto.UserName && u.Id != userId);
-            if (usernameTaken)
-                return Conflict("Ta nazwa użytkownika już jest zajęta");
-
-            _mapper.Map(updateUserDto,user);
-
-            await _context.SaveChangesAsync();
-
-            return Ok();
+            var command = new UpdateUserCommand(User,updateUserDto);
+            return await _mediator.Send(command);
         }
         [Authorize(Roles="Admin")]
         [HttpGet("admin/users")]
