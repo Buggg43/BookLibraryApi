@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using BookLibraryApi.Data;
 using Microsoft.AspNetCore.Hosting.Server;
-using BookLibraryApi.Middlewear;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -12,6 +11,7 @@ using BookLibraryApi.Models;
 using FluentValidation;
 using MediatR.Extensions.FluentValidation.AspNetCore;
 using FluentValidation.AspNetCore;
+using BookLibraryApi.Middleware;
 
 namespace BookLibraryApi
 {
@@ -72,7 +72,7 @@ namespace BookLibraryApi
             app.UseAuthentication();
             app.UseAuthorization();
 
-            app.UseMiddleware<ExceptionMiddlewear>();
+            app.UseMiddleware<ExceptionMiddleware>();
             app.MapControllers();
             app.UseHttpsRedirection();
 

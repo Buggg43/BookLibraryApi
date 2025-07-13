@@ -12,10 +12,13 @@ namespace BookLibraryApi.Features.Users.Commands
     {
         private readonly LibraryDbContext _context;
         private readonly IMapper _mapper;
-        public UpdateUserCommandHandler(LibraryDbContext context, IMapper mapper)
+        private readonly PasswordHasher<User> _hasher;
+
+        public UpdateUserCommandHandler(LibraryDbContext context, IMapper mapper,PasswordHasher<User> hasher)
         {
             _context = context;
             _mapper = mapper;
+            _hasher = hasher;
         }
         public async Task<IResult> Handle(UpdateUserCommand request, CancellationToken cancellationToken)
         {
