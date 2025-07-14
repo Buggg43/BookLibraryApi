@@ -4,5 +4,5 @@ using System.Security.Claims;
 
 namespace BookLibraryApi.Features.Users.Commands
 {
-    public record ChangePasswordCommand(ClaimsPrincipal User, ChangePasswordDto dto ) : IRequest<IResult>;
+    public record LogoutCommand(LogOutRequestDto dto, ClaimsPrincipal user): IRequest<IResult>;
 }

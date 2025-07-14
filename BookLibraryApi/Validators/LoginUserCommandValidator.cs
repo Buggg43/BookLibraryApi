@@ -3,9 +3,9 @@ using FluentValidation;
 
 namespace BookLibraryApi.Validators
 {
-    public class RegisterUserValidator : AbstractValidator<RegisterUserDto>
+    public class LoginUserCommandValidator : AbstractValidator<LoginUserDto>
     {
-        public RegisterUserValidator() 
+        public LoginUserCommandValidator() 
         {
             RuleFor(x => x.Username)
                 .NotEmpty()
