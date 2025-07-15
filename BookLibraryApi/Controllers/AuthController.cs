@@ -155,7 +155,7 @@ namespace BookLibraryApi.Controllers
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto changePasswordDto)
         {
             var _changePassword = new ChangePasswordCommandHandler(_context,_hasher);
-            return await _changePassword.ExecuteAsync(User, changePasswordDto);
+            return await _changePassword.Handle();
         }
         [Authorize]
         [HttpPut("me")]
