@@ -116,7 +116,7 @@ Services
 ## Autor
 
 Projekt stworzony jako ćwiczenie architektury aplikacji ASP.NET Core.  
-Kod uporządkowany, testowalny, gotowy do rozwoju lub prezentacji jako część portfolio.
+Kod uporządkowany, testowalny, gotowy do rozwoju.
 
 ---
 
