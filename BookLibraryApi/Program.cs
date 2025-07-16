@@ -55,7 +55,7 @@ namespace BookLibraryApi
 
             builder.Services.AddDbContext<LibraryDbContext>(options =>
             {
-                options.UseSqlServer(@"Server=.\SQLEXPRESS;Database=LibraryDB;Trusted_Connection=True;TrustServerCertificate=True;");
+                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 
             });
 

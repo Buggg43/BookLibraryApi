@@ -4,5 +4,5 @@ using System.Security.Claims;
 
 namespace BookLibraryApi.Features.Users.Commands
 {
-    public record UpdateUserCommand(ClaimsPrincipal User, UpdateUserDto Dto) : IRequest<IResult>;
+    public record CreateBookCommand(BookCreateDto dto, ClaimsPrincipal User) : IRequest<IResult>;
 }
