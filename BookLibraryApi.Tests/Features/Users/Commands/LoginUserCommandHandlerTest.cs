@@ -20,55 +20,37 @@ namespace BookLibraryApi.Tests.Features.Users.Commands
     
     public class LoginUserCommandHandlerTest 
     {
-
-        [Fact]
-        public async Task Handle_ShouldReturnTokenPair_WhenCredentialsAreValid()
+        [Theory]
+        [InlineData("123", "123", true)]
+        [InlineData("123", "wrongpass", false)]
+        [InlineData("nobody", "123", false)]
+        public async Task Handle_LoginTests(string Username, string Password, bool shouldSucceed)
         {
-            var context = TestFactory.CreateContext();
-            var user = TestFactory.CreateTestUser("123", "123", out var hasher);
+            var context = TestFactory.CreateContext(Guid.NewGuid().ToString());
             var mockJwtService = TestFactory.CreateJwtServiceMock();
-            context.Users.Add(user); context.SaveChanges();
+            var dto = new LoginUserDto { Username = Username, Password = Password };
+            var hasher = new PasswordHasher<User>();
 
-
-
-            var handler = new LoginUserCommandHandler(context, hasher, mockJwtService.Object);
-
-
-            var inputForTest= new List<LoginUserDto>();
-            inputForTest.Add(new LoginUserDto { Password = "123", Username = "123" });
-
-            inputForTest.Add(new LoginUserDto { Password = "1234", Username = "123" });
-
-            foreach (var input in inputForTest) {
-                var command = new LoginUserCommand(input);
-                var result = await handler.Handle(command, CancellationToken.None);
-
-                var okResult = result as Ok<TokenPairDto>;
-
-                Assert.NotNull(okResult);
-                Assert.Equal("access_test", okResult.Value.AccessToken);
-                Assert.Equal("refresh_test", okResult.Value.RefreshToken);
+            
+            if (shouldSucceed || Username == "123")
+            {
+                var user = new User { Username = Username, Role = "User" };
+                user.PasswordHash = hasher.HashPassword(user, "123"); 
+                await context.Users.AddAsync(user);
+                await context.SaveChangesAsync();
             }
 
-        }
-        [Fact]
-        public async Task Handle_ShouldReturnUnauthorized_WhenPasswordIsInvalid()
-        {
-            // Arrange
-            var context = TestFactory.CreateContext();
-            var user = TestFactory.CreateTestUser("123", "123", out var hasher);
-            var mockJwtService = TestFactory.CreateJwtServiceMock();
-            context.Users.Add(user); context.SaveChanges();
-
             var handler = new LoginUserCommandHandler(context, hasher, mockJwtService.Object);
-            var command = new LoginUserCommand(new LoginUserDto { Username = "123", Password = "wrongpass" });
+            var command = new LoginUserCommand(dto);
 
-            // Act
             var result = await handler.Handle(command, CancellationToken.None);
 
-            // Assert
-            Assert.IsType<UnauthorizedHttpResult>(result);
+            if (shouldSucceed)
+                Assert.IsType<Ok<TokenPairDto>>(result);
+            else
+                Assert.IsType<UnauthorizedHttpResult>(result);
         }
+
 
     }
 }

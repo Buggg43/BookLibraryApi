@@ -12,6 +12,8 @@ namespace BookLibraryApi.Mapper
             CreateMap<Book, BookReadDto>();
             CreateMap<RegisterUserDto, User>();
             CreateMap<UpdateUserDto, User>();
+            CreateMap<User, UserReadDto>();
+            CreateMap<BookUpdateDto, Book>();
         }
     }
 }

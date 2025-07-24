@@ -67,7 +67,7 @@ namespace BookLibraryApi.Controllers
         [HttpGet("admin/users")]
         public async Task<IActionResult> GetAllUsers()
         {
-            return (IActionResult)await _mediator.Send(new GetAllUsersQuery());
+            return (IActionResult)await _mediator.Send(new GetAllUsersQuery(User));
         }
         [Authorize(Roles="Admin")]
         [HttpDelete("admin/users/{id}")]
@@ -79,7 +79,7 @@ namespace BookLibraryApi.Controllers
         [HttpPut("admin/users/role")]
         public async Task<IActionResult> UpdateUser([FromBody] UpdateUserRoleDto newRole)
         {
-            return (IActionResult)await _mediator.Send(new UpdateUserRoleCommand(newRole));
+            return (IActionResult)await _mediator.Send(new UpdateUserRoleCommand(newRole, User));
         }
         [HttpPut("refresh")]
         public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequestDto refreshTokenDto)

@@ -20,6 +20,9 @@ namespace BookLibraryApi.Features.Users.Commands
         public async Task<IResult>Handle(CreateBookCommand request, CancellationToken cancellationToken)
         {
             var userId = int.Parse(request.User.FindFirst(ClaimTypes.NameIdentifier).Value);
+            var user = await _context.Users.FirstOrDefaultAsync(b =>  b.Id == userId);
+            if (user == null)
+                return Results.Unauthorized();
             var book = _mapper.Map<Book>(request.dto);
 
             book.UserId = userId;

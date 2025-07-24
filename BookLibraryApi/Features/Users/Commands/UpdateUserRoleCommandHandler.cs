@@ -1,6 +1,7 @@
 ﻿using BookLibraryApi.Data;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace BookLibraryApi.Features.Users.Commands
 {
@@ -13,9 +14,16 @@ namespace BookLibraryApi.Features.Users.Commands
         }
         public async Task<IResult> Handle(UpdateUserRoleCommand request, CancellationToken cancelationToken)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(b => b.Id == request.dto.UserId);
+            var userId = int.Parse(request.user.FindFirst(ClaimTypes.NameIdentifier).Value);
+            var user = await _context.Users.FirstOrDefaultAsync(b => b.Id == userId);
             if (user == null)
                 return Results.NotFound();
+
+            var role = request.user.FindFirst(ClaimTypes.Role).Value;
+            if(role == null || role != "Admin") 
+                return Results.Forbid();
+            if(role == request.dto.Role)
+                return Results.BadRequest();
 
             user.Role = request.dto.Role;
 

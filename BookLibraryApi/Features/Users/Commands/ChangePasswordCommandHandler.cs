@@ -30,6 +30,10 @@ namespace BookLibraryApi.Features.Users.Commands
             if (hash == PasswordVerificationResult.Failed)
                 return Results.Unauthorized();
 
+            var isSamePassword = _hasher.VerifyHashedPassword(user, user.PasswordHash, request.dto.NewPassword);
+            if (isSamePassword == PasswordVerificationResult.Success)
+                return Results.BadRequest("New password must be different from the old password.");
+
             user.PasswordHash = _hasher.HashPassword(user,request.dto.NewPassword);
             await _context.SaveChangesAsync();
 

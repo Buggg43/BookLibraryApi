@@ -25,6 +25,9 @@ namespace BookLibraryApi.Features.Users.Commands
         public async Task<IResult> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
         {
             var dto = request.dto;
+            if (dto.Username == null || dto.Password == null)
+                return Results.BadRequest();
+
             var exist = await _context.Users.AnyAsync(b => b.Username == dto.Username);
             if(exist)
                 return Results.Conflict("Username taken");

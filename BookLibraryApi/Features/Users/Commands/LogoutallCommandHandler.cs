@@ -5,18 +5,20 @@ using System.Security.Claims;
 
 namespace BookLibraryApi.Features.Users.Commands
 {
-    public class LogoutallCommandHandler : IRequestHandler<LogoutAllCommand, IResult>
+    public class LogoutAllCommandHandler : IRequestHandler<LogoutAllCommand, IResult>
     {
         private readonly LibraryDbContext _context;
 
-        public LogoutallCommandHandler(LibraryDbContext context)
+        public LogoutAllCommandHandler(LibraryDbContext context)
         {
             _context = context;
         }
         public async Task<IResult> Handle(LogoutAllCommand request, CancellationToken cancelationToken)
         {
             var userId = int.Parse(request.user.FindFirst(ClaimTypes.NameIdentifier).Value);
-
+            var user = await _context.Users.FirstOrDefaultAsync(b => b.Id == userId);
+            if (user == null)
+                return Results.Unauthorized();
             var tokens = await _context.RefreshTokens.Where(b => b.UserId == userId).ToListAsync();
             foreach(var token in tokens )
             {

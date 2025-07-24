@@ -12,8 +12,8 @@ namespace BookLibraryApi.Features.Users.Commands
     {
         private readonly LibraryDbContext _context;
         private readonly PasswordHasher<User> _hasher;
-        private readonly JwtService _token;
-        public LoginUserCommandHandler(LibraryDbContext context, PasswordHasher<User> hasher, JwtService token) 
+        private readonly IJwtService _token;
+        public LoginUserCommandHandler(LibraryDbContext context, PasswordHasher<User> hasher, IJwtService token) 
         {
             _context = context;
             _hasher = hasher;
@@ -22,13 +22,17 @@ namespace BookLibraryApi.Features.Users.Commands
         public async Task<IResult> Handle(LoginUserCommand request, CancellationToken cancellationToken )
         {
             var user = await _context.Users.FirstOrDefaultAsync(b => b.Username == request.dto.Username);
-            var result = _hasher.VerifyHashedPassword(user, user.PasswordHash, request.dto.Password);
-            if (user == null || result == PasswordVerificationResult.Failed)
+            if (user == null)
                 return Results.Unauthorized();
-
+            var result = _hasher.VerifyHashedPassword(user, user.PasswordHash, request.dto.Password);
+            if(result != PasswordVerificationResult.Success)
+                return Results.Unauthorized();
             var token = _token.GenerateToken(user);
             var refresh = _token.GenerateRefreshToken(user);
 
+
+            if (token == null || refresh == null)
+                return Results.Unauthorized();
             var pair = new TokenPairDto
             {
                 AccessToken = token,

@@ -24,8 +24,4 @@
     <ProjectReference Include="..\BookLibraryApi\BookLibraryApi.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Features\Users\Queries\" />
-  </ItemGroup>
-
 </Project>

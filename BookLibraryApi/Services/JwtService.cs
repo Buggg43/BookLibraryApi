@@ -8,7 +8,12 @@ using BookLibraryApi.Models.Dtos;
 
 namespace BookLibraryApi.Services
 {
-    public class JwtService
+    public interface IJwtService
+    {
+        string GenerateToken(User user);
+        RefreshToken GenerateRefreshToken(User user);
+    }
+    public class JwtService : IJwtService
     {
         private readonly IConfiguration _configure;
         public JwtService(IConfiguration configure)
@@ -43,25 +48,15 @@ namespace BookLibraryApi.Services
         }
         public RefreshToken GenerateRefreshToken(User user)
         {
-            var random = RandomNumberGenerator.GetBytes(32);
-            var token = Convert.ToBase64String(random);
-
-            //var expiresMinutes = int.Parse(_configure["ExpireMinutes"]);//to add ExpireDays in appsetting
-
-            var expire = DateTime.UtcNow.AddDays(7); 
-
-            var refreshUser = new RefreshToken();
-            
-            
-            refreshUser.Id = user.Id;
-            refreshUser.UserId = user.Id;
-            refreshUser.isRevoked = false;// potem do zmiany 
-            refreshUser.Expires = expire;
-            refreshUser.Token = token;
-            refreshUser.User = user;
-            
-
-            return refreshUser;
+            var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+            return new RefreshToken
+            {
+                UserId = user.Id,
+                Token = token,
+                Expires = DateTime.UtcNow.AddDays(7),
+                isRevoked = false,
+                User = user
+            };
         }
     }
 }

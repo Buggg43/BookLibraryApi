@@ -10,8 +10,8 @@ namespace BookLibraryApi.Features.Users.Commands
     public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, IResult>
     {
         private readonly LibraryDbContext _context;
-        private readonly JwtService _token;
-        public RefreshTokenCommandHandler(LibraryDbContext context, JwtService token) 
+        private readonly IJwtService _token;
+        public RefreshTokenCommandHandler(LibraryDbContext context, IJwtService token) 
         {
             _context = context;
             _token = token;

@@ -20,7 +20,7 @@ namespace BookLibraryApi.Features.Users.Commands
                 return Results.NotFound();
 
             var tokenLogout = await _context.RefreshTokens.FirstOrDefaultAsync(b => b.Token == token);
-            if(tokenLogout.UserId != userId) 
+            if(tokenLogout == null || tokenLogout.UserId != userId) 
                 return Results.Forbid();
 
             if (tokenLogout.isRevoked || tokenLogout.Expires < DateTime.UtcNow)
