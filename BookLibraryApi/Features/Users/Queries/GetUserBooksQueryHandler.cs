@@ -20,37 +20,43 @@ namespace BookLibraryApi.Features.Users.Queries
         {
             var userId = int.Parse(request.user.FindFirst(ClaimTypes.NameIdentifier).Value);
             var filters = request.dto;
+
             var query = _context.Books.Where(b => b.UserId == userId);
 
             if (filters.isRead.HasValue)
-                query = query.Where(b => b.UserId == userId);
-            if(filters.isFavorite.HasValue)
-                query = query.Where(b => b.UserId == userId);
-            if (filters.Title != null)
-                query = query.Where(b => b.UserId == userId);
-            if(filters.Author != null)
-                query = query.Where(b => b.UserId == userId);
-            if(filters.Year != null)
-                query = query.Where(b => b.UserId == userId);
+                query = query.Where(b => b.isRead == filters.isRead.Value);
+
+            if (filters.isFavorite.HasValue)
+                query = query.Where(b => b.isFavorite == filters.isFavorite.Value);
+
+            if (!string.IsNullOrEmpty(filters.Title))
+                query = query.Where(b => b.Title.Contains(filters.Title));
+
+            if (!string.IsNullOrEmpty(filters.Author))
+                query = query.Where(b => b.Author.Contains(filters.Author));
+
+            if (filters.Year.HasValue)
+                query = query.Where(b => b.Year.Year == filters.Year.Value.Year);
 
             var totalItems = await query.CountAsync();
             var totalPages = (int)Math.Ceiling((double)totalItems / filters.PageSize);
 
-            var books = query
+            var books = await query
                 .Skip((filters.Page - 1) * filters.PageSize)
                 .Take(filters.PageSize)
-                .ToList();
+                .ToListAsync();
 
             var filterResult = _mapper.Map<List<BookReadDto>>(books);
 
-            return Results.Ok(new
+            return Results.Ok(new GetUserBooksResponseDto
             {
-                filters.Page,
-                filters.PageSize,
-                totalItems,
-                totalPages,
-                data = filterResult
+                Page = filters.Page,
+                PageSize = filters.PageSize,
+                TotalItems = totalItems,
+                TotalPages = totalPages,
+                Data = filterResult
             });
+
         }
     }
 }

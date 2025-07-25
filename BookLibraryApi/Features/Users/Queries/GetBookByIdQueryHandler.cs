@@ -21,12 +21,16 @@ namespace BookLibraryApi.Features.Users.Queries
         {
             var userId = int.Parse(request.User.FindFirst(ClaimTypes.NameIdentifier).Value);
             var book = await _context.Books.FirstOrDefaultAsync(book => book.Id == request.BookId);
+
+            if (book == null)
+                return Results.NotFound();
+
             if (book.UserId != userId)
                 return Results.Forbid();
 
             var result = _mapper.Map<BookReadDto>(book);
-
             return Results.Ok(result);
+
         }
     }
 }

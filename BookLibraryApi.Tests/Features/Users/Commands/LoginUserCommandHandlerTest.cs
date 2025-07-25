@@ -17,31 +17,32 @@ using BookLibraryApi.Tests.Common;
 
 namespace BookLibraryApi.Tests.Features.Users.Commands
 {
-    
-    public class LoginUserCommandHandlerTest 
+    public class LoginUserCommandHandlerTest
     {
+        public static IEnumerable<object[]> LoginUserCases =>
+            new List<object[]>
+            {
+                new object[] { "abc", "abc", true },
+                new object[] { "abc", "wrong", false },
+                new object[] { "ghost", "abc", false }
+            };
+
         [Theory]
-        [InlineData("123", "123", true)]
-        [InlineData("123", "wrongpass", false)]
-        [InlineData("nobody", "123", false)]
-        public async Task Handle_LoginTests(string Username, string Password, bool shouldSucceed)
+        [MemberData(nameof(LoginUserCases))]
+        public async Task LoginUserTest(string username, string password, bool shouldSucceed)
         {
             var context = TestFactory.CreateContext(Guid.NewGuid().ToString());
-            var mockJwtService = TestFactory.CreateJwtServiceMock();
-            var dto = new LoginUserDto { Username = Username, Password = Password };
             var hasher = new PasswordHasher<User>();
 
-            
-            if (shouldSucceed || Username == "123")
+            if (username != "ghost")
             {
-                var user = new User { Username = Username, Role = "User" };
-                user.PasswordHash = hasher.HashPassword(user, "123"); 
-                await context.Users.AddAsync(user);
-                await context.SaveChangesAsync();
+                var user = TestFactory.CreateTestUser(username, "abc", out hasher);
+                await TestFactory.AddUsersAsync(context, user);
             }
 
-            var handler = new LoginUserCommandHandler(context, hasher, mockJwtService.Object);
-            var command = new LoginUserCommand(dto);
+            var jwtMock = TestFactory.CreateJwtServiceMock();
+            var command = new LoginUserCommand(new LoginUserDto { Username = username, Password = password });
+            var handler = new LoginUserCommandHandler(context, hasher, jwtMock.Object);
 
             var result = await handler.Handle(command, CancellationToken.None);
 
@@ -50,7 +51,6 @@ namespace BookLibraryApi.Tests.Features.Users.Commands
             else
                 Assert.IsType<UnauthorizedHttpResult>(result);
         }
-
-
     }
+
 }

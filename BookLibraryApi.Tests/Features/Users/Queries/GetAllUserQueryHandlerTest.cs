@@ -1,12 +1,5 @@
 ﻿using BookLibraryApi.Tests.Common;
 using BookLibraryApi.Features.Users.Queries;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using AutoMapper;
-using BookLibraryApi.Mapper;
 using Microsoft.AspNetCore.Http.HttpResults;
 using BookLibraryApi.Models.Dtos;
 
@@ -14,27 +7,31 @@ namespace BookLibraryApi.Tests.Features.Users.Queries
 {
     public class GetAllUserQueryHandlerTest
     {
+        public static IEnumerable<object[]> GetAllUsersTestCases =>
+            new List<object[]>
+            {
+                new object[] { "abc", 1, "Admin", true },
+                new object[] { "abc", 2, "User", false }
+            };
+
         [Theory]
-        [InlineData("abc",1,"Admin", true)]
-        [InlineData("abc",2,"User", false)]
-        public async Task GetAllUsers(string Username,int? id, string Role, bool ShouldSucced )
+        [MemberData(nameof(GetAllUsersTestCases))]
+        public async Task GetAllUsers(string username, int? id, string role, bool shouldSucceed)
         {
             var context = TestFactory.CreateContext(Guid.NewGuid().ToString());
-            var mapper = new AutoMapper.Mapper(new MapperConfiguration(cfg =>
-                cfg.AddProfile<MappingProfile>()
-            ));
-            var claim = TestFactory.CreateClaimsPrincipal(Username, id, Role);
+            var mapper = TestFactory.CreateMapper();
 
+            var claim = TestFactory.CreateClaimsPrincipal(username, id, role);
 
-            var querry = new GetAllUsersQuery(claim);
+            var query = new GetAllUsersQuery(claim);
             var handler = new GetAllUsersQueryHandler(context, mapper);
-            
-            var  result = await handler.Handle(querry, CancellationToken.None);
 
-            if (ShouldSucced)
+            var result = await handler.Handle(query, CancellationToken.None);
+
+            if (shouldSucceed)
                 Assert.IsType<Ok<List<UserReadDto>>>(result);
             else
-                 Assert.IsType<ForbidHttpResult>(result);
+                Assert.IsType<ForbidHttpResult>(result);
         }
     }
 }

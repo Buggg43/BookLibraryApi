@@ -15,41 +15,42 @@ using System.Threading.Tasks;
 namespace BookLibraryApi.Tests.Features.Users.Commands
 {
     public class RegisterUserCommandHandlerTest
-    {
-        [Theory]
-        [InlineData("abc","abc", true)]
-        [InlineData("abc", "abc", false)]
-        [InlineData("ghost",null, false)]
-        public async Task RegisterUserTest(string Username,string? Password, bool ShouldSucced)
         {
-            var context = TestFactory.CreateContext(Guid.NewGuid().ToString());
-            var mapper = new AutoMapper.Mapper(new MapperConfiguration(cfg =>
-                cfg.AddProfile<MappingProfile>()
-            ));
-            var hasher = new PasswordHasher<User>();
+            public static IEnumerable<object[]> RegisterUserCases =>
+                new List<object[]>
+                {
+            new object[] { "abc", "abc", true },
+            new object[] { "abc", "abc", false },
+            new object[] { "ghost", null, false }
+                };
 
-            var newUser = new RegisterUserDto { Username = Username, Password = Password};
-            if(!ShouldSucced)
+            [Theory]
+            [MemberData(nameof(RegisterUserCases))]
+            public async Task RegisterUserTest(string username, string? password, bool shouldSucceed)
             {
-                await context.Users.AddAsync(mapper.Map<User>(newUser));
-                await context.SaveChangesAsync();
+                var context = TestFactory.CreateContext(Guid.NewGuid().ToString());
+                var mapper = TestFactory.CreateMapper();
+                var hasher = new PasswordHasher<User>();
+
+                if (!shouldSucceed && password != null)
+                {
+                    var user = TestFactory.CreateTestUser(username, password, out _);
+                    await TestFactory.AddUsersAsync(context, user);
+                }
+
+                var dto = new RegisterUserDto { Username = username, Password = password };
+                var command = new RegisterUserCommand(dto);
+                var handler = new RegisterUserCommandHandler(context, mapper, hasher);
+
+                var result = await handler.Handle(command, CancellationToken.None);
+
+                if (shouldSucceed)
+                    Assert.IsType<Created>(result);
+                else if (password == null)
+                    Assert.IsType<BadRequest>(result);
+                else
+                    Assert.IsType<Conflict<string>>(result);
             }
-
-            var command = new RegisterUserCommand(newUser);
-            var handler = new RegisterUserCommandHandler(context, mapper, hasher);
-
-            var result = await handler.Handle(command, CancellationToken.None);
-
-            if (ShouldSucced)
-            {
-                Assert.IsType<Created>(result);
-            }
-            else if (Username == "ghost")
-                Assert.IsType<BadRequest>(result);
-            else
-                Assert.IsType<Conflict<string>>(result);
-
-
         }
+
     }
-}

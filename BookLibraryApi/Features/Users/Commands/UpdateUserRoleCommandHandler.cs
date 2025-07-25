@@ -14,18 +14,19 @@ namespace BookLibraryApi.Features.Users.Commands
         }
         public async Task<IResult> Handle(UpdateUserRoleCommand request, CancellationToken cancelationToken)
         {
-            var userId = int.Parse(request.user.FindFirst(ClaimTypes.NameIdentifier).Value);
-            var user = await _context.Users.FirstOrDefaultAsync(b => b.Id == userId);
-            if (user == null)
+            var requesterId = int.Parse(request.user.FindFirst(ClaimTypes.NameIdentifier).Value);
+            var targetUser = await _context.Users.FirstOrDefaultAsync(b => b.Id == request.dto.UserId);
+            if (targetUser == null)
                 return Results.NotFound();
 
-            var role = request.user.FindFirst(ClaimTypes.Role).Value;
-            if(role == null || role != "Admin") 
+            var requesterRole = request.user.FindFirst(ClaimTypes.Role).Value.ToString();
+            if (requesterRole != "Admin" || requesterId == request.dto.UserId)
                 return Results.Forbid();
-            if(role == request.dto.Role)
+
+            if (targetUser.Role == request.dto.Role || request.dto.Role == null)
                 return Results.BadRequest();
 
-            user.Role = request.dto.Role;
+            targetUser.Role = request.dto.Role;
 
             await _context.SaveChangesAsync();
 

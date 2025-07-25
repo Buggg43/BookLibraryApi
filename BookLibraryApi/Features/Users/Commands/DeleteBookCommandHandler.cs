@@ -22,6 +22,7 @@ namespace BookLibraryApi.Features.Users.Commands
                 return Results.Forbid();
 
             _context.Books.Remove(bookToDelete);
+            await _context.SaveChangesAsync();
 
             return Results.NoContent();
         }

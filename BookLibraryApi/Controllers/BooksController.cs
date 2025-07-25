@@ -19,9 +19,9 @@ namespace BookLibraryApi.Controllers
         }
         [Authorize(Roles="Admin")]
         [HttpGet("admin/all-books")]
-        public async Task<IActionResult> GetAllBookFromAllUsers()
+        public async Task<IActionResult> GetAllBookFromAllUsers(GetUserBooksDto filters)
         {
-            return (IActionResult)await _mediator.Send(new GetAllBooksQuery()); ;
+            return (IActionResult)await _mediator.Send(new GetAllBooksQuery(filters)); ;
         }
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] GetUserBooksDto filters)

@@ -17,56 +17,52 @@ namespace BookLibraryApi.Tests.Features.Users.Commands
         public static IEnumerable<object[]> UpdateUserTestCases =>
             new List<object[]>
             {
-                new object[] { new UpdateUserDto { UserName = "NewUsername" }, 1, true }, // correct
-                new object[] { new UpdateUserDto { UserName = "OldUsername" }, 2, false }, // dto with old username
-                new object[] { new UpdateUserDto { UserName = "ghost" }, 3, false }  // no user
+            new object[] { new UpdateUserDto { UserName = "NewUsername" }, 1, true },
+            new object[] { new UpdateUserDto { UserName = "OldUsername" }, 2, false },
+            new object[] { new UpdateUserDto { UserName = "ghost" }, 3, false }
             };
-        
+
         [Theory]
         [MemberData(nameof(UpdateUserTestCases))]
-        public async Task UpdateUserTest(UpdateUserDto dto,int id, bool ShouldSucced)
+        public async Task UpdateUserTest(UpdateUserDto dto, int id, bool shouldSucceed)
         {
             var context = TestFactory.CreateContext(Guid.NewGuid().ToString());
             var mapper = TestFactory.CreateMapper();
             var hasher = new PasswordHasher<User>();
-            var user = new User();
 
-            if(ShouldSucced)
-            {
-                user = TestFactory.CreateTestUser("OldUsername", "abc",out hasher, id);
-                await context.Users.AddAsync(user);
-                await context.SaveChangesAsync();
-            }
-            else if(id == 2)
+            User user = null;
+
+            if (shouldSucceed || id == 2)
             {
                 user = TestFactory.CreateTestUser("OldUsername", "abc", out hasher, id);
-                await context.Users.AddAsync(user);
-                var otherUser = TestFactory.CreateTestUser("OldUsername", "abc", out hasher, id: 999);
-                await context.Users.AddAsync(otherUser);
-                await context.SaveChangesAsync();
+                await TestFactory.AddUsersAsync(context, user);
+
+                if (id == 2)
+                {
+                    var otherUser = TestFactory.CreateTestUser("OldUsername", "abc", out hasher, 999);
+                    await TestFactory.AddUsersAsync(context, otherUser);
+                }
             }
 
-            var claim = TestFactory.CreateClaimsPrincipal(user.Username, id);
-
-
-            var command = new UpdateUserCommand(claim,dto);
+            var claim = TestFactory.CreateClaimsPrincipal(user?.Username ?? dto.UserName, id);
+            var command = new UpdateUserCommand(claim, dto);
             var handler = new UpdateUserCommandHandler(context, mapper, hasher);
 
             var result = await handler.Handle(command, CancellationToken.None);
 
-            if(ShouldSucced)
+            if (shouldSucceed)
             {
                 Assert.IsType<NoContent>(result);
             }
+            else if (id == 2)
+            {
+                Assert.IsType<Conflict<string>>(result);
+            }
             else
             {
-                if(id == 2)
-                {  
-                    Assert.IsType<Conflict<string>>(result);
-                }
-                else
-                    Assert.IsType<NotFound>(result);
+                Assert.IsType<NotFound>(result);
             }
         }
     }
+
 }

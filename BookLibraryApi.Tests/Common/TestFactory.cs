@@ -59,6 +59,31 @@ namespace BookLibraryApi.Tests.Common
 
             return mock;
         }
+        public static Book CreateTestBook(int id, int userId, string title = "Default Title", bool isRead = false)
+        {
+            return new Book
+            {
+                Id = id,
+                Title = title,
+                Author = "testAuthor",
+                Year = DateTime.UtcNow,
+                isRead = isRead,
+                isFavorite = false,
+                Description = "Test",
+                UserId = userId
+            };
+        }
+        public static async Task AddBooksAsync(LibraryDbContext context, params Book[] books)
+        {
+            await context.Books.AddRangeAsync(books);
+            await context.SaveChangesAsync();
+        }
+        public static async Task AddUsersAsync(LibraryDbContext context, params User[] users)
+        {
+            await context.Users.AddRangeAsync(users);
+            await context.SaveChangesAsync();
+        }
+
 
         public static ClaimsPrincipal CreateClaimsPrincipal(string username, int? id = null, string? role = "User")
         {

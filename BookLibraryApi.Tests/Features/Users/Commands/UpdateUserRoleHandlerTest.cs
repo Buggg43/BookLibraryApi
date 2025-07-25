@@ -4,6 +4,7 @@ using BookLibraryApi.Models.Dtos;
 using BookLibraryApi.Tests.Common;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,41 +18,55 @@ namespace BookLibraryApi.Tests.Features.Users.Commands
         public static IEnumerable<object[]> UpdateRoleTestCases =>
             new List<object[]>
             {
-                new object[] { new UpdateUserRoleDto { Role = "Admin", UserId = 5 }, 1,"Admin", true }, // correct
-                new object[] { new UpdateUserRoleDto { Role = "User", UserId = 3 }, 2, "Admin", false },  // change in to the same role
-                new object[] { new UpdateUserRoleDto { Role = null, UserId = 6 }, 3, "Admin", false }, // Unknown role
-                new object[] { new UpdateUserRoleDto { Role = "Admin", UserId = 1 }, 1,"Admin", false },
-                new object[] { new UpdateUserRoleDto { Role = "Admin", UserId = 7 }, 4, "User", false }
+            new object[] { new UpdateUserRoleDto { Role = "Premium", UserId = 5 }, 1, "Admin", true },
+            new object[] { new UpdateUserRoleDto { Role = "Admin", UserId = 3 }, 2, "Admin", false },
+            new object[] { new UpdateUserRoleDto { Role = null, UserId = 6 }, 3, "Admin", false },
+            new object[] { new UpdateUserRoleDto { Role = "User", UserId = 1 }, 1, "Admin", false },
+            new object[] { new UpdateUserRoleDto { Role = "Admin", UserId = 7 }, 4, "User", false }
             };
+
         [Theory]
         [MemberData(nameof(UpdateRoleTestCases))]
-        public async Task UpdateUserRoleTest(UpdateUserRoleDto dto, int id,string role, bool ShouldSucced)
+        public async Task UpdateUserRoleTest(UpdateUserRoleDto dto, int id, string role, bool shouldSucceed)
         {
             var context = TestFactory.CreateContext(Guid.NewGuid().ToString());
             var claim = TestFactory.CreateClaimsPrincipal("Test", id, role);
-            var hasher = new PasswordHasher<User>();
 
-            if(ShouldSucced)
-            {
-                var user = TestFactory.CreateTestUser(role, "abc", out hasher);
-                user.Role = role;
-                await context.Users.AddAsync(user);
-                await context.SaveChangesAsync();
+            var adminUser = TestFactory.CreateTestUser("Test", "abc", out _, id);
+            adminUser.Role = role;
 
-            }
+            var targetUser = TestFactory.CreateTestUser("Target", "abc", out _, dto.UserId);
+            targetUser.Role = dto.UserId == 3 ? "Admin" : "User";
+
+            if (dto.UserId != 1)
+                await TestFactory.AddUsersAsync(context, targetUser);
+
+            await TestFactory.AddUsersAsync(context, adminUser);
 
             var command = new UpdateUserRoleCommand(dto, claim);
             var handler = new UpdateUserRoleCommandHandler(context);
 
             var result = await handler.Handle(command, CancellationToken.None);
 
-            if (ShouldSucced)
+            if (shouldSucceed)
+            {
                 Assert.IsType<NoContent>(result);
+                var updatedUser = await context.Users.FindAsync(dto.UserId);
+                Assert.Equal(dto.Role, updatedUser.Role);
+            }
+            else if (role != "Admin" || dto.UserId == id)
+            {
+                Assert.IsType<ForbidHttpResult>(result);
+            }
+            else if (dto.Role == role || dto.Role == null)
+            {
+                Assert.IsType<BadRequest>(result);
+            }
             else
-                if()
-                    Assert.IsType<NotFound>(result);
-
+            {
+                Assert.IsType<NotFound>(result);
+            }
         }
-
     }
+
 }

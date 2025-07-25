@@ -22,7 +22,7 @@ namespace BookLibraryApi.Tests.Features.Users.Commands
         [InlineData("bca",2, "wrongpass", "newpass", false)]
         [InlineData("ghost",3, "oldpass", "newpass", false)]
         [InlineData("abd",4, "oldpass", "oldpass", false)]
-        public async Task ChangePasswordCommandHandler(string Username,int?id, string OldPassword, string NewPassword, bool ShouldSucced)
+        public async Task ChangePasswordTest(string Username,int?id, string OldPassword, string NewPassword, bool ShouldSucced)
         {
             var context = TestFactory.CreateContext(Guid.NewGuid().ToString());
             var hasher = new PasswordHasher<User>();
