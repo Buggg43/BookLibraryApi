@@ -3,7 +3,8 @@
 ![.NET](https://img.shields.io/badge/.NET-9.0-blueviolet?logo=dotnet)
 ![Tests](https://img.shields.io/badge/tests-passing-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Build](https://github.com/Buggg43/BookLibraryApi/actions/workflows/dotnet.yml/badge.svg)
+![Build](https://github.com/Buggg43/BookLibraryApi/actions/workflows/ci.yml/badge.svg)
+
 
 ---
 
