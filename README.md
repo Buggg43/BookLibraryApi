@@ -1,130 +1,160 @@
-# BookLibrary API
+# 📚 BookLibrary API  
 
-RESTful API do zarządzania książkami oraz kontami użytkowników – zbudowane w technologii ASP.NET Core, z wykorzystaniem nowoczesnej architektury CQRS + MediatR + FluentValidation.
+![.NET](https://img.shields.io/badge/.NET-9.0-blueviolet?logo=dotnet)
+![Tests](https://img.shields.io/badge/tests-passing-brightgreen)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Build](https://github.com/YOUR_GITHUB_USERNAME/BookLibraryApi/actions/workflows/dotnet.yml/badge.svg)
 
 ---
 
-## Technologie
+RESTful API do zarządzania książkami i kontami użytkowników.  
+Projekt zbudowany w **ASP.NET Core 9**, oparty na architekturze **CQRS + MediatR + FluentValidation**.  
 
-- ASP.NET Core 8
+---
+
+## 🚀 Funkcjonalności
+
+✅ Rejestracja i logowanie (hashowane hasła, JWT + Refresh Tokeny)  
+✅ Pełna obsługa sesji – logout, logout/all, automatyczne czyszczenie tokenów  
+✅ CQRS (Commands/Queries) + MediatR  
+✅ FluentValidation + AutoMapper  
+✅ Middleware błędów  
+✅ Testy jednostkowe i integracyjne (xUnit + EF Core InMemory)
+
+---
+
+## 🛠 Technologie
+
+- ASP.NET Core 9
 - Entity Framework Core
 - MediatR
 - FluentValidation
 - AutoMapper
 - JWT (JSON Web Tokens)
-- SQL Server (LocalDB / SQL Express)
+- CQRS
+- xUnit (testy jednostkowe i integracyjne)
 
 ---
 
-## Architektura
+## 📐 Architektura
 
-Projekt oparty na wzorcu CQRS:
-- Commands – do zapisu (np. tworzenie, aktualizacja, usuwanie)
-- Queries – do odczytu (np. filtrowanie, pobieranie danych)
-- MediatR – do delegowania logiki z kontrolerów
-- FluentValidation – walidacja wszystkich DTO i komend
-- JWT i Refresh Tokeny – pełna obsługa sesji
-
----
-
-## System uwierzytelniania
-
-- Rejestracja i logowanie z hashowaniem haseł (PasswordHasher)
-- Generowanie Access Tokenów (15 minut) i Refresh Tokenów (7 dni)
-- Automatyczne czyszczenie tokenów przez BackgroundService
-- Obsługa logout i logout/all per urządzenie
+- **Commands** – logika zapisu (create/update/delete)  
+- **Queries** – logika odczytu (filtrowanie/pobieranie)  
+- **MediatR** – delegowanie zapytań i komend z kontrolerów  
+- **FluentValidation** – walidacja danych wejściowych  
+- **JWT & Refresh Tokeny** – pełna obsługa sesji użytkowników  
 
 ---
 
-## Endpoints – podział
+## 🔑 Endpoints
 
-### AuthController
+### 🔐 AuthController
 
-| Metoda | Endpoint | Opis |
-|--------|----------|------|
-| POST   | /register             | Rejestracja nowego użytkownika |
-| POST   | /login                | Logowanie i zwrot pary tokenów |
-| PUT    | /refresh              | Odświeżenie Access Tokena |
-| POST   | /logout               | Wylogowanie jednego urządzenia |
-| POST   | /logout/all           | Wylogowanie ze wszystkich urządzeń |
-| GET    | /me                   | Dane zalogowanego użytkownika |
-| PUT    | /me/password          | Zmiana hasła |
-| PUT    | /me                   | Edycja danych konta |
-| GET    | /admin/users          | Lista wszystkich użytkowników (admin) |
-| PUT    | /admin/users/role     | Zmiana roli użytkownika (admin) |
-| DELETE | /admin/users/{id}     | Usunięcie użytkownika (admin) |
+| Metoda | Endpoint           | Opis                                  |
+|--------|--------------------|---------------------------------------|
+| POST   | `/api/auth/register` | Rejestracja nowego użytkownika       |
+| POST   | `/api/auth/login`    | Logowanie i zwrot pary tokenów       |
+| POST   | `/api/auth/refresh`  | Odświeżenie Access Tokena           |
+| POST   | `/api/auth/logout`   | Wylogowanie jednego urządzenia       |
+| POST   | `/api/auth/logout/all` | Wylogowanie ze wszystkich urządzeń |
+| GET    | `/api/auth/me`       | Dane zalogowanego użytkownika       |
+| PUT    | `/api/auth/me/password` | Zmiana hasła                     |
+| PUT    | `/api/auth/me`       | Edycja danych konta                 |
+| GET    | `/api/auth/admin/users` | Lista wszystkich użytkowników (admin) |
+| PUT    | `/api/auth/admin/users/role` | Zmiana roli użytkownika (admin) |
+| DELETE | `/api/auth/admin/users/{id}` | Usunięcie użytkownika (admin) |
 
----
+### 📖 BooksController
 
-### BooksController
-
-| Metoda | Endpoint | Opis |
-|--------|----------|------|
-| GET    | /books                     | Lista książek zalogowanego użytkownika (z filtrami i paginacją) |
-| GET    | /books/{id}               | Szczegóły jednej książki |
-| POST   | /books                    | Dodanie nowej książki |
-| PUT    | /books/{id}               | Edycja książki |
-| DELETE | /books/{id}               | Usunięcie książki |
-| GET    | /books/admin/all-books    | Lista wszystkich książek w systemie (admin) |
+| Metoda | Endpoint              | Opis                                       |
+|--------|-----------------------|--------------------------------------------|
+| GET    | `/api/books`          | Lista książek zalogowanego użytkownika     |
+| GET    | `/api/books/{id}`     | Szczegóły jednej książki                   |
+| POST   | `/api/books`          | Dodanie nowej książki                      |
+| PUT    | `/api/books/{id}`     | Edycja książki                            |
+| DELETE | `/api/books/{id}`     | Usunięcie książki                         |
+| GET    | `/api/books/admin/all-books` | Lista wszystkich książek (admin) |
 
 ---
 
-## Przykładowe DTO
+## 📦 Struktura projektu
 
-```json
-// RegisterUserDto
-{
-  "username": "testuser",
-  "password": "Secure123"
-}
+src/
+└── BookLibraryApi
+├── Features
+│ ├── Users
+│ ├── Books
+├── Models
+├── Services
+└── Middleware
 
-// TokenPairDto
-{
-  "accessToken": "eyJhbGciOiJIUz...",
-  "refreshToken": "d9841bc9..."
-}
-```
+tests/
+└── BookLibraryApi.Tests
 
----
-
-## Uruchomienie projektu
-
-1. Skonfiguruj connection string do SQL Server w `appsettings.json`
-2. Uruchom migracje (jeśli są dodane)
-3. Włącz projekt i otwórz Swagger: `https://localhost:{port}/swagger`
-4. Przetestuj rejestrację i logowanie – token JWT można wkleić w Swaggerze (Authorize 🔒)
+yaml
+Kopiuj
+Edytuj
 
 ---
 
-## Struktura katalogów
+## ▶ Uruchomienie projektu
 
-```
-Features
- ┣ Users
- ┃ ┣ Commands
- ┃ ┣ Queries
- ┃ ┗ Validators
-Models
- ┣ Dtos
- ┗ User.cs, Book.cs
-Services
- ┗ JwtService.cs, RefreshTokenCleanUpService.cs
-```
+### 🔹 1. Klonowanie repozytorium
 
----
+```bash
+git clone https://github.com/YOUR_GITHUB_USERNAME/BookLibraryApi.git
+cd BookLibraryApi
+🔹 2. Uruchomienie API
+bash
+Kopiuj
+Edytuj
+dotnet build
+dotnet run --project src/BookLibraryApi
+Swagger: https://localhost:5001/swagger
 
-## Autor
+🔹 3. Uruchomienie testów
+bash
+Kopiuj
+Edytuj
+dotnet test
+🛠 CI (GitHub Actions)
+W repozytorium dodaj plik .github/workflows/dotnet.yml:
 
-Projekt stworzony jako ćwiczenie architektury aplikacji ASP.NET Core.  
-Kod uporządkowany, testowalny, gotowy do rozwoju.
+yaml
+Kopiuj
+Edytuj
+name: .NET CI
 
----
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
-## Postęp
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '9.0.x'
+      - name: Restore dependencies
+        run: dotnet restore
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+      - name: Test
+        run: dotnet test --no-build --verbosity normal
+Dzięki temu w README wyświetli się badge:
 
-- [x] CQRS
-- [x] MediatR
-- [x] Tokeny JWT + Refresh
-- [x] Middleware błędów
-- [x] Walidacja FluentValidation
-- [ ] Testy jednostkowe (w trakcie realizacji)
+md
+Kopiuj
+Edytuj
+![Build](https://github.com/YOUR_GITHUB_USERNAME/BookLibraryApi/actions/workflows/dotnet.yml/badge.svg)
+📜 Licencja
+Projekt dostępny na licencji MIT.
+
+👨‍💻 Autor
+Projekt stworzony jako zaawansowane ćwiczenie architektury ASP.NET Core + CQRS + MediatR.
+Kod gotowy do rozwoju, z testami integracyjnymi i wzorcami stosowanymi w projektach komercyjnych.
