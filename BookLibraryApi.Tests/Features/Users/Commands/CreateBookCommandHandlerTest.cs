@@ -6,6 +6,7 @@ using BookLibraryApi.Models.Dtos;
 using BookLibraryApi.Tests.Common;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,7 +29,8 @@ namespace BookLibraryApi.Tests.Features.Users.Commands
         public async Task CreateBook(string username, int? id, bool shouldSucceed)
         {
             var context = TestFactory.CreateContext(Guid.NewGuid().ToString());
-            var mapper = TestFactory.CreateMapper();
+            var loggerFactory = LoggerFactory.Create(lb => lb.AddDebug());
+            var mapper = TestFactory.CreateMapper(loggerFactory);
 
             var book = new BookCreateDto
             {
@@ -50,7 +52,7 @@ namespace BookLibraryApi.Tests.Features.Users.Commands
                 var result = await handler.Handle(command, CancellationToken.None);
 
                 if (shouldSucceed)
-                    Assert.IsType<Created>(result);
+                    Assert.IsType<Created<BookReadDto>>(result);
                 else
                     Assert.IsType<UnauthorizedHttpResult>(result);
             }

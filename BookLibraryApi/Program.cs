@@ -1,7 +1,6 @@
+﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using BookLibraryApi.Data;
-using Microsoft.AspNetCore.Hosting.Server;
-using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using BookLibraryApi.Services;
@@ -12,66 +11,74 @@ using FluentValidation;
 using MediatR.Extensions.FluentValidation.AspNetCore;
 using FluentValidation.AspNetCore;
 using BookLibraryApi.Middleware;
+using BookLibraryApi.Mapper;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace BookLibraryApi
 {
-    public class Program
+    public partial class Program
     {
+        private static readonly InMemoryDatabaseRoot _testDbRoot = new(); // ✅ współdzielona baza w testach
+
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.  
-            // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi  
-            builder.Services.AddOpenApi();
+            if (!builder.Environment.EnvironmentName.Equals("IntegrationTesting", StringComparison.OrdinalIgnoreCase))
+            {
+                builder.Services.AddSwaggerGen();
+            }
+
             builder.Services.AddControllers();
             builder.Services.AddScoped<PasswordHasher<User>>();
-            builder.Services.AddScoped<JwtService>();
-            builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
-            builder.Services.AddAutoMapper(typeof(Program));
-            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
+            builder.Services.AddScoped<IJwtService, JwtService>();
+
+            builder.Services.AddAutoMapper(cfg =>
             {
-                options.TokenValidationParameters = new TokenValidationParameters
+                cfg.LicenseKey = builder.Configuration["AutoMapper:LicenseKey"] ?? "";
+            }, typeof(Program).Assembly);
+
+            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(options =>
                 {
-                    ValidateIssuer = true,
-                    ValidateAudience = false,
-                    ValidateLifetime = true,
-                    ValidateIssuerSigningKey = true,
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidateAudience = false,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                        IssuerSigningKey = new SymmetricSecurityKey(
+                            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "this_is_a_super_secret_test_key_123"))
+                    };
+                });
 
-                    ValidIssuer = builder.Configuration["Jwt:Issuer"],
-
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? string.Empty))
-
-                };
-            });
             builder.Services.AddHostedService<RefreshTokenCleanUpService>();
             builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
             builder.Services.AddFluentValidationAutoValidation();
             builder.Services.AddValidatorsFromAssemblyContaining<Program>();
-            //builder.Services.AddFluentValidationClientsideAdapters(); // dla frontu MVC/Blazor
 
-            // Fix for CS1009: Unrecognized escape sequence  
-
-            builder.Services.AddDbContext<LibraryDbContext>(options =>
+            if (builder.Environment.EnvironmentName == "IntegrationTesting")
             {
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
-
-            });
+                builder.Services.AddDbContext<LibraryDbContext>(options =>
+                    options.UseInMemoryDatabase("TestDb", _testDbRoot));
+            }
+            else
+            {
+                builder.Services.AddDbContext<LibraryDbContext>(options =>
+                    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+            }
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.  
-            if (app.Environment.IsDevelopment())
+            if (!app.Environment.EnvironmentName.Equals("IntegrationTesting", StringComparison.OrdinalIgnoreCase))
             {
-                app.MapOpenApi();
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
 
             app.UseAuthentication();
             app.UseAuthorization();
-
             app.UseMiddleware<ExceptionMiddleware>();
             app.MapControllers();
             app.UseHttpsRedirection();

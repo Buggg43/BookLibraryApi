@@ -13,41 +13,47 @@ namespace BookLibraryApi.Controllers
     public class BooksController : ControllerBase
     {
         private readonly IMediator _mediator;
+
         public BooksController(IMediator mediator)
         {
             _mediator = mediator;
         }
-        [Authorize(Roles="Admin")]
+
+        [Authorize(Roles = "Admin")]
         [HttpGet("admin/all-books")]
-        public async Task<IActionResult> GetAllBookFromAllUsers(GetUserBooksDto filters)
+        public async Task<IResult> GetAllBookFromAllUsers([FromQuery] GetUserBooksDto filters)
         {
-            return (IActionResult)await _mediator.Send(new GetAllBooksQuery(filters)); ;
+            return await _mediator.Send(new GetAllBooksQuery(filters));
         }
+
         [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery] GetUserBooksDto filters)
+        public async Task<IResult> GetAll([FromQuery] GetUserBooksDto filters)
         {
-            return (IActionResult)await _mediator.Send(new GetUserBooksQuery(filters, User)); ;
+            return await _mediator.Send(new GetUserBooksQuery(filters, User));
         }
-        [HttpGet("{Id}")]
-        public async Task<IActionResult> GetById(int id)
+
+        [HttpGet("{id}")]
+        public async Task<IResult> GetById(int id)
         {
-            return (IActionResult)await _mediator.Send(new GetBookByIdQuery(id, User)); ;
+            return await _mediator.Send(new GetBookByIdQuery(id, User));
         }
+
         [HttpPost]
-        public async Task<IActionResult> AddBook([FromBody] BookCreateDto bookDto)
+        public async Task<IResult> AddBook([FromBody] BookCreateDto bookDto)
         {
-            return (IActionResult)await _mediator.Send(new CreateBookCommand(bookDto, User)); ;
+            return await _mediator.Send(new CreateBookCommand(bookDto, User));
         }
+
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update([FromBody]BookUpdateDto book, int id)
+        public async Task<IResult> Update([FromBody] BookUpdateDto book, int id)
         {
-            return (IActionResult)await _mediator.Send(new UpdateBookCommand(id, book, User)); ;
+            return await _mediator.Send(new UpdateBookCommand(id, book, User));
         }
+
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IResult> Delete(int id)
         {
-            return (IActionResult)await _mediator.Send(new DeleteBookCommand(id, User)); ;
+            return await _mediator.Send(new DeleteBookCommand(id, User));
         }
     }
-
 }

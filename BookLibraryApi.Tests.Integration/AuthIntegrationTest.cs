@@ -1,5 +1,4 @@
 ﻿using BookLibraryApi.Models.Dtos;
-using Microsoft.AspNetCore.Mvc.Testing;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -9,51 +8,56 @@ namespace BookLibraryApi.Tests.Integration
 {
     public class AuthIntegrationTests : IntegrationTestBase
     {
-        public AuthIntegrationTests(WebApplicationFactory<Program> factory) : base(factory) { }
+        public AuthIntegrationTests(CustomWebApplicationFactory factory) : base(factory) { }
 
-        private async Task<TokenPairDto> RegisterAndLoginAsync(string username)
+        private async Task<TokenPairDto> RegisterAndLoginAsync(string? username = null)
         {
-            await Client.PostAsJsonAsync("/auth/register", new RegisterUserDto
+            username ??= $"testuser{Guid.NewGuid():N}".Substring(0, 10); 
+
+            var registerDto = new RegisterUserDto
+            {
+                Username = username,
+                Password = "password123"
+            };
+
+            var registerResponse = await Client.PostAsJsonAsync("/api/auth/register", registerDto);
+            registerResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+            registerResponse.EnsureSuccessStatusCode();
+
+
+            var loginResponse = await Client.PostAsJsonAsync("/api/auth/login", new LoginUserDto
             {
                 Username = username,
                 Password = "password123"
             });
+            loginResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
-            var response = await Client.PostAsJsonAsync("/auth/login", new LoginUserDto
-            {
-                Username = username,
-                Password = "password123"
-            });
+            loginResponse.EnsureSuccessStatusCode();
 
-            return await response.Content.ReadFromJsonAsync<TokenPairDto>() ?? throw new Exception("Login failed");
+            return await loginResponse.Content.ReadFromJsonAsync<TokenPairDto>()
+                   ?? throw new Exception("Invalid JSON returned from /api/auth/login");
         }
+
 
         [Fact]
         public async Task Register_ShouldReturnCreated()
         {
             var registerDto = new RegisterUserDto
             {
-                Username = "test_user",
+                Username = $"testuser{Guid.NewGuid():N}".Substring(0, 10),
                 Password = "password123"
             };
 
-            var response = await Client.PostAsJsonAsync("/auth/register", registerDto);
-
+            var response = await Client.PostAsJsonAsync("/api/auth/register", registerDto);
             response.StatusCode.Should().Be(HttpStatusCode.Created);
         }
 
         [Fact]
         public async Task Login_ShouldReturnJwtTokens()
         {
-            var registerDto = new RegisterUserDto { Username = "login_user", Password = "password123" };
-            await Client.PostAsJsonAsync("/auth/register", registerDto);
+            var tokens = await RegisterAndLoginAsync();
 
-            var loginDto = new LoginUserDto { Username = "login_user", Password = "password123" };
-            var response = await Client.PostAsJsonAsync("/auth/login", loginDto);
-
-            response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-            var tokens = await response.Content.ReadFromJsonAsync<TokenPairDto>();
             tokens.Should().NotBeNull();
             tokens.AccessToken.Should().NotBeNullOrEmpty();
             tokens.RefreshToken.Should().NotBeNullOrEmpty();
@@ -62,8 +66,10 @@ namespace BookLibraryApi.Tests.Integration
         [Fact]
         public async Task DeleteBook_ShouldReturnNoContent()
         {
-            var tokens = await RegisterAndLoginAsync("delete_user");
-            Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokens.AccessToken);
+            var tokens = await RegisterAndLoginAsync();
+
+            Client.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", tokens.AccessToken);
 
             var bookDto = new BookCreateDto
             {
@@ -73,25 +79,25 @@ namespace BookLibraryApi.Tests.Integration
                 Description = "DeleteMe"
             };
 
-            var createResponse = await Client.PostAsJsonAsync("/books", bookDto);
-            var createdBook = await createResponse.Content.ReadFromJsonAsync<BookReadDto>();
+            var createResponse = await Client.PostAsJsonAsync("/api/books", bookDto);
+            createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
-            var deleteResponse = await Client.DeleteAsync($"/books/{createdBook.Id}");
+            var createdBook = await createResponse.Content.ReadFromJsonAsync<BookReadDto>();
+            var deleteResponse = await Client.DeleteAsync($"/api/books/{createdBook!.Id}");
             deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
         }
 
         [Fact]
         public async Task RefreshToken_ShouldReturnNewTokens()
         {
-            var tokens = await RegisterAndLoginAsync("refresh_user");
+            var tokens = await RegisterAndLoginAsync();
 
             var refreshDto = new RefreshTokenRequestDto
             {
                 token = tokens.RefreshToken
             };
 
-            var response = await Client.PostAsJsonAsync("/auth/refresh", refreshDto);
-
+            var response = await Client.PutAsJsonAsync("/api/auth/refresh", refreshDto);
             response.StatusCode.Should().Be(HttpStatusCode.OK);
 
             var newTokens = await response.Content.ReadFromJsonAsync<TokenPairDto>();

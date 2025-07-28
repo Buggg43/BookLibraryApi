@@ -3,6 +3,7 @@ using BookLibraryApi.Models;
 using BookLibraryApi.Models.Dtos;
 using BookLibraryApi.Tests.Common;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,7 +27,8 @@ namespace BookLibraryApi.Tests.Features.Users.Queries
         {
             var context = TestFactory.CreateContext(Guid.NewGuid().ToString());
             var claim = TestFactory.CreateClaimsPrincipal("Test",id);
-            var mapper = TestFactory.CreateMapper();
+            var loggerFactory = LoggerFactory.Create(lb => lb.AddDebug());
+            var mapper = TestFactory.CreateMapper(loggerFactory);
             var testUser = TestFactory.CreateTestUser("abc", "abc", out _, id);
             await TestFactory.AddUsersAsync(context, testUser);
 

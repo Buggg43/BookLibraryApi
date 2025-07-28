@@ -25,6 +25,9 @@ namespace BookLibraryApi.Features.Users.Commands
         public async Task<IResult> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
         {
             var dto = request.dto;
+
+            Console.WriteLine($"Username: '{dto?.Username}', Password: '{dto?.Password}'");
+
             if (dto.Username == null || dto.Password == null)
                 return Results.BadRequest();
 

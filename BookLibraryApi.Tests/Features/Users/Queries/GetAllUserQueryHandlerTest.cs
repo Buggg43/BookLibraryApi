@@ -2,6 +2,7 @@
 using BookLibraryApi.Features.Users.Queries;
 using Microsoft.AspNetCore.Http.HttpResults;
 using BookLibraryApi.Models.Dtos;
+using Microsoft.Extensions.Logging;
 
 namespace BookLibraryApi.Tests.Features.Users.Queries
 {
@@ -19,7 +20,8 @@ namespace BookLibraryApi.Tests.Features.Users.Queries
         public async Task GetAllUsers(string username, int? id, string role, bool shouldSucceed)
         {
             var context = TestFactory.CreateContext(Guid.NewGuid().ToString());
-            var mapper = TestFactory.CreateMapper();
+            var loggerFactory = LoggerFactory.Create(lb => lb.AddDebug());
+            var mapper = TestFactory.CreateMapper(loggerFactory);
 
             var claim = TestFactory.CreateClaimsPrincipal(username, id, role);
 

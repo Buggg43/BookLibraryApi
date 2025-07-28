@@ -4,7 +4,6 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using System.Security.Cryptography;
-using BookLibraryApi.Models.Dtos;
 
 namespace BookLibraryApi.Services
 {
@@ -13,18 +12,26 @@ namespace BookLibraryApi.Services
         string GenerateToken(User user);
         RefreshToken GenerateRefreshToken(User user);
     }
+
     public class JwtService : IJwtService
     {
-        private readonly IConfiguration _configure;
-        public JwtService(IConfiguration configure)
+        private readonly IConfiguration _configuration;
+
+        public JwtService(IConfiguration configuration)
         {
-            _configure = configure;
+            _configuration = configuration;
         }
+
         public string GenerateToken(User user)
         {
-            var keyString = _configure["Jwt:Key"];
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyString));
+            var keyString = _configuration["Jwt:Key"];
+            if (string.IsNullOrEmpty(keyString) || keyString.Length < 16)
+                throw new Exception("Jwt:Key must be at least 16 characters long.");
 
+            var issuer = _configuration["Jwt:Issuer"] ?? throw new Exception("Jwt:Issuer is not configured.");
+            var expireMinutes = int.TryParse(_configuration["Jwt:ExpireMinutes"], out var minutes) ? minutes : 60;
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyString));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var claims = new List<Claim>
@@ -34,29 +41,30 @@ namespace BookLibraryApi.Services
                 new Claim(ClaimTypes.Role, user.Role)
             };
 
-            var epiresMinutes = int.Parse(_configure["Jwt:ExpireMinutes"]);
-            var expire = DateTime.Now.AddMinutes(epiresMinutes);
+            var token = new JwtSecurityToken(
+                issuer: issuer,
+                audience: issuer,
+                claims: claims,
+                notBefore: DateTime.UtcNow,
+                expires: DateTime.UtcNow.AddMinutes(expireMinutes),
+                signingCredentials: credentials);
 
-            var token = new JwtSecurityToken(_configure["Jwt:Issuer"], _configure["Jwt:Issuer"], claims, DateTime.UtcNow, expire,credentials);
-
-            var handler = new JwtSecurityTokenHandler();
-
-            var jwt = handler.WriteToken(token);
-
-            return jwt;
-
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
         public RefreshToken GenerateRefreshToken(User user)
         {
-            var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+            if (user == null)
+                throw new ArgumentNullException(nameof(user), "User cannot be null when generating refresh token.");
+
             return new RefreshToken
             {
                 UserId = user.Id,
-                Token = token,
+                Token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)),
                 Expires = DateTime.UtcNow.AddDays(7),
                 isRevoked = false,
                 User = user
             };
         }
+
     }
 }

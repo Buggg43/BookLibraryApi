@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using BookLibraryApi.Data;
 using BookLibraryApi.Models;
+using BookLibraryApi.Models.Dtos;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
@@ -32,7 +33,7 @@ namespace BookLibraryApi.Features.Users.Commands
             await _context.Books.AddAsync(book);
             await _context.SaveChangesAsync();
 
-            return Results.Created($"/api/books/{book.Id}", null);
+            return Results.Created($"/api/books/{book.Id}", _mapper.Map<BookReadDto>(book));
         }
     }
 }

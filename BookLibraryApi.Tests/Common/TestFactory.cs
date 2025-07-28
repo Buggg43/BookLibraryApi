@@ -3,9 +3,12 @@ using BookLibraryApi.Data;
 using BookLibraryApi.Mapper;
 using BookLibraryApi.Models;
 using BookLibraryApi.Services;
+using Castle.Core.Logging;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using System.Security.Claims;
 
@@ -22,12 +25,14 @@ namespace BookLibraryApi.Tests.Common
 
             return new LibraryDbContext(options);
         }
-        public static IMapper CreateMapper()
+        public static IMapper CreateMapper(Microsoft.Extensions.Logging.ILoggerFactory loggerFactory)
         {
-            var configuration = new MapperConfiguration(cfg =>
-                cfg.AddProfile<MappingProfile>()
-            );
-            return configuration.CreateMapper();
+            var config = new MapperConfiguration(cfg =>
+            {
+                cfg.AddProfile<MappingProfile>();
+            }, loggerFactory);
+            config.AssertConfigurationIsValid();
+            return config.CreateMapper();
         }
 
         public static User CreateTestUser(string username,string password, out PasswordHasher<User> hasher, int? id = null)

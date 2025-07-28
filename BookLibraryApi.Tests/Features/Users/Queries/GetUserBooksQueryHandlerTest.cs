@@ -4,6 +4,7 @@ using BookLibraryApi.Models.Dtos;
 using BookLibraryApi.Tests.Common;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,7 +29,8 @@ namespace BookLibraryApi.Tests.Features.Users.Queries
         public async Task GetUserBooks(GetUserBooksDto dto, int booksReturned, int expectedCount, int expectedTotalPages)
         {
             var context = TestFactory.CreateContext(Guid.NewGuid().ToString());
-            var mapper = TestFactory.CreateMapper();
+            var loggerFactory = LoggerFactory.Create(lb => lb.AddDebug());
+            var mapper = TestFactory.CreateMapper(loggerFactory);
 
             var user = TestFactory.CreateTestUser("testUser", "abc", out _, 1);
             await TestFactory.AddUsersAsync(context, user);
